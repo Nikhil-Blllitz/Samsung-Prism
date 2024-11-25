@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Text Generation and Watermarking</title>
+    <title>AI Text Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,13 +30,13 @@
             text-align: center;
         }
         input[type="text"] {
-            width: 100%; /* Full width of the parent container */
+            width: 100%;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 16px;
-            box-sizing: border-box; /* Ensures padding doesn't increase total width */
+            box-sizing: border-box;
         }
         button {
             padding: 10px 20px;
@@ -46,7 +46,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            width: 100%; /* Button spans the container's width */
+            width: 100%;
         }
         button:hover {
             background-color: #0056b3;
@@ -57,9 +57,6 @@
             max-width: 500px;
             width: 100%;
         }
-        .result-section {
-            margin-bottom: 20px;
-        }
         pre {
             background: #f9f9f9;
             padding: 10px;
@@ -67,8 +64,15 @@
             overflow-x: auto;
             font-size: 14px;
             color: #555;
-            white-space: pre-wrap; /* Wrap long text in the pre element */
-            word-wrap: break-word; /* Ensure long words break properly */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .link-button {
+            margin-top: 10px;
+            background-color: #28a745;
+        }
+        .link-button:hover {
+            background-color: #218838;
         }
     </style>
     <script>
@@ -91,8 +95,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('generatedText').textContent = data.generated_text;
-                    document.getElementById('watermarkedText').textContent = data.watermarked_text;
+                    document.getElementById('outputText').textContent = data.watermarked_text;
                 } else {
                     const errorData = await response.json();
                     alert("Error: " + errorData.error);
@@ -105,22 +108,19 @@
     </script>
 </head>
 <body>
-    <h1>AI Text Generation and Watermarking</h1>
+    <h1>AI Text Generator</h1>
     <div id="form-container">
         <label for="prompt"><strong>Enter your prompt:</strong></label>
         <input type="text" id="prompt" placeholder="Enter your prompt here" />
         <button onclick="generateText()">Generate Text</button>
+        <a href="/watermark-detector">
+            <button class="link-button">Go to Watermark Detector</button>
+        </a>
     </div>
 
     <div id="results">
-        <div class="result-section">
-            <h2>Generated Text:</h2>
-            <pre id="generatedText"></pre>
-        </div>
-        <div class="result-section">
-            <h2>Watermarked Text:</h2>
-            <pre id="watermarkedText"></pre>
-        </div>
+        <h2>Generated Text with Watermark:</h2>
+        <pre id="outputText"></pre>
     </div>
 </body>
 </html>
