@@ -59,28 +59,44 @@ def generate_and_watermark(user_input):
 
 @app.route('/')
 def home():
-    return render_template('index.html')  # Serve the HTML frontend
+    return render_template('index.html')  # Default generation page
+
+@app.route('/watermark-detector')
+def watermark_detector():
+    return render_template('detect_watermark.html')  # Watermark detection page
+
 
 @app.route('/generate', methods=['POST'])
 def generate_text():
-    data = request.get_json()  # Receive JSON data from client
+    data = request.get_json()
     prompt = data.get("prompt", "")
-    
-    # Check if prompt is not empty
+
     if not prompt:
         return jsonify({"error": "No prompt provided"}), 400
 
-    # Generate text with the specified model    
     try:
-        generated_text = generate_and_watermark(prompt)
+        # Generate text and apply watermark
+        watermarked_text = generate_and_watermark(prompt)
     except Exception as e:
         return jsonify({"error": f"Text generation failed: {str(e)}"}), 500
 
-    # Return the generated text and watermarked text as a JSON response
     return jsonify({
-        "generated_text": generated_text,
-        "watermarked_text": generated_text  # The watermark is embedded in the generated text itself
+        "watermarked_text": watermarked_text
     })
+
+
+@app.route('/detect', methods=['POST'])
+def detect_watermark():
+    data = request.get_json()  # Receive JSON data from the client
+    text = data.get("text", "")
+    
+    # Check for the presence of the Unicode watermark (\u200C)
+    if "\u200C" in text:
+        result = {"message": "This text is AI-generated."}
+    else:
+        result = {"message": "No AI watermark detected in this text."}
+
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True)
