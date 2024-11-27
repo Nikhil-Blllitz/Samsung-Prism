@@ -7,28 +7,45 @@ app = Flask(__name__)
 # Set your API key (you can hide this or load it from an environment variable for production)
 os.environ["GROQ_API_KEY"] = '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'
 
-# Define a watermarking function that inserts a single invisible Unicode character at frequent intervals
-def apply_unicode_watermark(generated_text, interval=5):
+# Define a watermarking function that inserts a byte sequence at frequent intervals
+def apply_byte_watermark(generated_text, interval=5):
     """
-    Adds an invisible Unicode watermark (zero-width joiner) to the generated text at frequent intervals.
-    The watermark is inserted after every 'interval' number of words.
+    Adds an invisible watermark to the generated text at frequent intervals using byte sequences.
+    The watermark is inserted after every 'interval' number of words based on byte positions.
     """
-    # Unicode invisible characters (zero-width joiner)
-    unicode_watermark = "\u200C"  # Single invisible watermark character
+    # Invisible watermark (using BOM as the watermark byte sequence)
+    byte_watermark = b'\xEF\xBB\xBF'  # BOM (Byte Order Mark) as an invisible watermark
     
-    words = generated_text.split()  # Split the text into words
-    watermarked_text = []
+    # Convert the generated text into bytes
+    text_bytes = generated_text.encode('utf-8')
     
-    # Insert watermark after every 'interval' number of words
-    for i in range(0, len(words), interval):
-        # Add words to the list
-        watermarked_text.extend(words[i:i+interval])
-        # Add a single invisible watermark after each group of words
-        if i + interval < len(words):  # Don't add watermark at the end if no additional words
-            watermarked_text.append(unicode_watermark)
+    # Create a mutable bytearray to insert watermark
+    watermarked_text = bytearray(text_bytes)
     
-    # Join the words back into a string with single spaces between them
-    return " ".join(watermarked_text)
+    # Calculate approximate word positions based on spaces (split text by space)
+    byte_position = 0  # Start at the beginning of the byte array
+    word_count = 0  # This will track the number of words we encounter
+    
+    while byte_position < len(watermarked_text):
+        # Check if the current byte corresponds to a space (end of a word)
+        if watermarked_text[byte_position] in [32]:  # ASCII space byte
+            word_count += 1
+        
+        # Insert watermark at the interval position (after every 'interval' words)
+        if word_count >= interval:
+            # Insert watermark byte sequence at this position
+            watermarked_text[byte_position:byte_position] = byte_watermark
+            byte_position += len(byte_watermark)  # Adjust byte_position after insertion
+            word_count = 0  # Reset word counter after inserting watermark
+        
+        # Move to the next byte
+        byte_position += 1
+
+    # Convert the byte array back to a string
+    return watermarked_text.decode('utf-8', errors='ignore')
+
+
+
 
 # Initialize the Groq client
 client = Groq()
@@ -50,7 +67,7 @@ def generate_and_watermark(user_input):
         generated_text = completion.choices[0].message.content
         
         # Apply watermark to the generated text
-        watermarked_text = apply_unicode_watermark(generated_text)
+        watermarked_text = apply_byte_watermark(generated_text)
         return watermarked_text
     
     except Exception as e:
@@ -83,12 +100,18 @@ def generate_text():
     })
 
 @app.route('/detect', methods=['POST'])
+@app.route('/detect', methods=['POST'])
 def detect_watermark():
     data = request.get_json()  # Receive JSON data from the client
     text = data.get("text", "")
     
-    # Check for the presence of the Unicode watermark (\u200C)
-    if "\u200C" in text:
+    # Check for the presence of the watermark byte sequence in the text
+    watermark_bytes = b'\xEF\xBB\xBF'
+    
+    # Convert the input text to bytes and search for watermark byte sequence
+    text_bytes = text.encode('utf-8')
+    
+    if watermark_bytes in text_bytes:
         result = {"message": "This text is AI-generated."}
     else:
         result = {"message": "No AI watermark detected in this text."}
