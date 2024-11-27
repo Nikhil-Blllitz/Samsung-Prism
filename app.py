@@ -1,13 +1,11 @@
 import os
 from flask import Flask, request, jsonify, render_template
-from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
+from groq import Groq
 
 app = Flask(__name__)
 
 # Set your API key (you can hide this or load it from an environment variable for production)
-os.environ["GROQ_API_KEY"] = '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'
+os.environ["GROQ_API_KEY"] = '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'
 
 # Define a watermarking function that inserts a single invisible Unicode character at frequent intervals
 def apply_unicode_watermark(generated_text, interval=5):
@@ -32,30 +30,31 @@ def apply_unicode_watermark(generated_text, interval=5):
     # Join the words back into a string with single spaces between them
     return " ".join(watermarked_text)
 
-# Initialize ChatGroq with your model
-llm = ChatGroq(
-    model="llama3-70b-8192",  # Llama3 model
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
-)
+# Initialize the Groq client
+client = Groq()
 
 # Define a function to get the output and watermark it
 def generate_and_watermark(user_input):
-    # Define your prompt template with the user's input
-    prompt = ChatPromptTemplate.from_messages([("human", user_input)])
-    
-    # Create a chain that combines the prompt with the LLM
-    chain = LLMChain(prompt=prompt, llm=llm)
-    
-    # Generate output using LangChain
-    generated_text = chain.run(input=user_input)
+    try:
+        # Use Groq to generate text with the "llama-3.2-1b-preview" model
+        completion = client.chat.completions.create(
+            model="llama-3.2-1b-preview",  # The 1B model you want to use
+            messages=[{"role": "user", "content": user_input}],
+            temperature=1,
+            max_tokens=1024,
+            top_p=1,
+            stream=False,  # We want to get the full response, not streamed
+        )
 
-    # Apply the Unicode watermark (single zero-width joiner) to the generated text
-    watermarked_text = apply_unicode_watermark(generated_text)
-
-    return watermarked_text
+        # Groq response returns a list of completions, take the first one
+        generated_text = completion.choices[0].message.content
+        
+        # Apply watermark to the generated text
+        watermarked_text = apply_unicode_watermark(generated_text)
+        return watermarked_text
+    
+    except Exception as e:
+        raise Exception(f"Text generation failed: {str(e)}")
 
 @app.route('/')
 def home():
@@ -64,7 +63,6 @@ def home():
 @app.route('/watermark-detector')
 def watermark_detector():
     return render_template('detect_watermark.html')  # Watermark detection page
-
 
 @app.route('/generate', methods=['POST'])
 def generate_text():
@@ -83,7 +81,6 @@ def generate_text():
     return jsonify({
         "watermarked_text": watermarked_text
     })
-
 
 @app.route('/detect', methods=['POST'])
 def detect_watermark():
