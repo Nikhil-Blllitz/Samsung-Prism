@@ -53,7 +53,9 @@ client = Groq()
 # Define a function to get the output and watermark it
 def generate_and_watermark(user_input):
     try:
-        # Use Groq to generate text with the "llama-3.2-1b-preview" model
+
+        user_input = f"{user_input}"
+
         completion = client.chat.completions.create(
             model="llama-3.2-1b-preview",  # The 1B model you want to use
             messages=[{"role": "user", "content": user_input}],
@@ -65,6 +67,8 @@ def generate_and_watermark(user_input):
 
         # Groq response returns a list of completions, take the first one
         generated_text = completion.choices[0].message.content
+
+        generated_text = f"Sure! Here is the information:\n\u200B{generated_text}\u200B\n\nThank you for using our service, if you have any questions or need further assistance, feel free to ask!"
         
         # Apply watermark to the generated text
         watermarked_text = apply_byte_watermark(generated_text)
@@ -100,23 +104,33 @@ def generate_text():
     })
 
 @app.route('/detect', methods=['POST'])
-@app.route('/detect', methods=['POST'])
 def detect_watermark():
     data = request.get_json()  # Receive JSON data from the client
     text = data.get("text", "")
     
-    # Check for the presence of the watermark byte sequence in the text
+    # Define the watermark byte sequence (BOM) and Unicode character
     watermark_bytes = b'\xEF\xBB\xBF'
+    zero_width_space = '\u200B'  # Zero Width Space character
+    phrase_at_start = "Sure! Here is the information:"
+    phrase_at_end = "Thank you for using our service, if you have any questions or need further assistance, feel free to ask!"
     
-    # Convert the input text to bytes and search for watermark byte sequence
+    # Check for the presence of watermark byte sequence (BOM)
     text_bytes = text.encode('utf-8')
+    watermark_found = watermark_bytes in text_bytes
     
-    if watermark_bytes in text_bytes:
+    # Check for the presence of Zero Width Space or phrases at the beginning or end
+    starts_with_phrase = text.startswith(phrase_at_start)
+    ends_with_phrase = text.endswith(phrase_at_end)
+    contains_zero_width_space = zero_width_space in text
+    
+    # Combine the conditions to determine if watermark is detected
+    if watermark_found or contains_zero_width_space or starts_with_phrase or ends_with_phrase:
         result = {"message": "This text is AI-generated."}
     else:
         result = {"message": "No AI watermark detected in this text."}
 
     return jsonify(result)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
