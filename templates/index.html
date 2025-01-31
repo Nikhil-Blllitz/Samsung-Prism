@@ -8,38 +8,40 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f4f4f4;
             color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
         }
         h1 {
             color: #444;
+            margin-bottom: 30px;
         }
         #form-container {
             background: #fff;
-            padding: 20px;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
+            max-width: 800px;
+            width: 90%;
+            margin-bottom: 30px;
         }
-        input[type="text"] {
+        textarea {
             width: 100%;
-            padding: 10px;
+            padding: 15px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 16px;
+            min-height: 100px;
+            resize: vertical;
             box-sizing: border-box;
         }
         button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 16px;
             color: #fff;
             background-color: #007BFF;
@@ -47,42 +49,81 @@
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
+            margin: 10px 0;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #0056b3;
         }
         #results {
-            margin-top: 20px;
-            text-align: left;
-            max-width: 500px;
-            width: 100%;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 90%;
         }
         pre {
             background: #f9f9f9;
-            padding: 10px;
+            padding: 15px;
             border-radius: 5px;
             overflow-x: auto;
             font-size: 14px;
             color: #555;
             white-space: pre-wrap;
             word-wrap: break-word;
+            margin: 0;
+            border: 1px solid #eee;
         }
         .link-button {
-            margin-top: 10px;
             background-color: #28a745;
         }
         .link-button:hover {
             background-color: #218838;
         }
+        #loading {
+            display: none;
+            margin: 20px 0;
+            color: #666;
+        }
+        .copy-button {
+            background-color: #6c757d;
+            margin-top: 10px;
+        }
+        .copy-button:hover {
+            background-color: #5a6268;
+        }
     </style>
+</head>
+<body>
+    <h1>AI Text Generator</h1>
+    <div id="form-container">
+        <label for="prompt"><strong>Enter your prompt:</strong></label>
+        <textarea id="prompt" placeholder="Enter your prompt here"></textarea>
+        <button onclick="generateText()">Generate Text</button>
+        <a href="/watermark-detector" style="text-decoration: none;">
+            <button class="link-button">Go to Watermark Detector</button>
+        </a>
+        <div id="loading">Generating text...</div>
+    </div>
+
+    <div id="results">
+        <h2>Generated Text with Watermark:</h2>
+        <pre id="outputText"></pre>
+        <button onclick="copyToClipboard()" class="copy-button">Copy to Clipboard</button>
+    </div>
+
     <script>
         async function generateText() {
             const prompt = document.getElementById('prompt').value;
+            const loading = document.getElementById('loading');
 
             if (!prompt) {
                 alert("Please enter a prompt.");
                 return;
             }
+
+            loading.style.display = 'block';
 
             try {
                 const response = await fetch('/generate', {
@@ -103,24 +144,20 @@
             } catch (error) {
                 console.error("An error occurred:", error);
                 alert("An unexpected error occurred. Please try again.");
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function copyToClipboard() {
+            const text = document.getElementById('outputText').textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('Text copied to clipboard!');
+            } catch (err) {
+                alert('Failed to copy text: ' + err);
             }
         }
     </script>
-</head>
-<body>
-    <h1>AI Text Generator</h1>
-    <div id="form-container">
-        <label for="prompt"><strong>Enter your prompt:</strong></label>
-        <input type="text" id="prompt" placeholder="Enter your prompt here" />
-        <button onclick="generateText()">Generate Text</button>
-        <a href="/watermark-detector">
-            <button class="link-button">Go to Watermark Detector</button>
-        </a>
-    </div>
-
-    <div id="results">
-        <h2>Generated Text with Watermark:</h2>
-        <pre id="outputText"></pre>
-    </div>
 </body>
 </html>
